@@ -1,8 +1,13 @@
+#![feature(test)]
+#![feature(is_sorted)]
+extern crate test;
+
 fn main() {}
 
 #[cfg(test)]
 mod tests {
-    use crate::BinarySearch;
+    use crate::SearchSort;
+    use test::Bencher;
 
     #[test]
     fn test_find_5() {
@@ -118,13 +123,75 @@ mod tests {
         assert_eq!(arr.find_me(find, 0, arr.len() - 1), Some(0)); // Should fail because all elements are equal.
     }
 
+    #[bench]
+    fn bench_large_vector(b: &mut Bencher) {
+        let large_vector: Vec<usize> = (0..1_000_000).collect();
+        let find = 999_999;
+
+        b.iter(|| {
+            assert_eq!(
+                large_vector.find_me(find, 0, large_vector.len() - 1),
+                Some(999_999)
+            );
+        });
+    }
+
+    #[test]
+    fn test_quicksort_empty() {
+        let mut arr: Vec<i32> = vec![];
+        arr.quicksort();
+        assert_eq!(arr, []);
+    }
+
+    #[test]
+    fn test_quicksort_single_element() {
+        let mut arr = vec![1];
+        arr.quicksort();
+        assert_eq!(arr, [1]);
+    }
+
+    #[test]
+    fn test_quicksort_multiple_elements() {
+        let mut arr = vec![3, 1, 4, 1, 5, 9, 2, 6, 5];
+        arr.quicksort();
+        assert_eq!(arr, [1, 1, 2, 3, 4, 5, 5, 6, 9]);
+    }
+
+    #[test]
+    fn test_quicksort_already_sorted() {
+        let mut arr = vec![1, 2, 3, 4, 5];
+        arr.quicksort();
+        assert_eq!(arr, [1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_quicksort_reverse_sorted() {
+        let mut arr = vec![5, 4, 3, 2, 1];
+        arr.quicksort();
+        assert_eq!(arr, [1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_quicksort_example() {
+        let mut arr = vec![
+            1, 83, 873, 83, 5, 48, 2, 3, 94, 23, 48, 57, 20, 394, 85, 7, 20, 39, 48, 57, 2, 93,
+            48, 57, 203, 984,
+        ];
+        arr.quicksort();
+        assert_eq!(
+            arr,
+            [1, 2, 2, 3, 5, 7, 20, 20, 23, 39, 48, 48, 48, 48, 57, 57, 57, 83, 83, 85, 93, 94, 203, 394, 873, 984]
+        );
+    }
 }
 
-trait BinarySearch<T> {
+trait SearchSort<T> {
     fn find_me(&self, element: T, start: usize, end: usize) -> Option<usize>;
+
+    fn quicksort(&mut self);
 }
 
-impl<T> BinarySearch<T> for Vec<T>
+impl<T> SearchSort<T> for Vec<T>
 where
     T: PartialEq + PartialOrd + Copy,
 {
@@ -147,10 +214,14 @@ where
         if self[middle] == element {
             return Some(middle);
         } else {
-            let lhs = if middle == 0 { None } else { self.find_me(element, start, middle - 1) };
+            let lhs = if middle == 0 {
+                None
+            } else {
+                self.find_me(element, start, middle - 1)
+            };
             let rhs = self.find_me(element, middle + 1, end);
 
-            if let Some(idx) = lhs { 
+            if let Some(idx) = lhs {
                 return Some(idx);
             }
 
@@ -161,4 +232,48 @@ where
 
         None
     }
+
+    fn quicksort(&mut self) {
+        let slice = self.as_mut_slice();
+        if !slice.is_empty() {
+            let pivot_index = partition(slice).unwrap();
+            let len = slice.len();
+
+            quicksort_helper(&mut slice[0..pivot_index]);
+            quicksort_helper(&mut slice[pivot_index + 1..len]);
+        }
+    }
+}
+
+fn quicksort_helper<T>(slice: &mut [T])
+where
+    T: PartialEq + PartialOrd + Copy,
+{
+    if !slice.is_empty() {
+        let pivot_index = partition(slice).unwrap();
+        let len = slice.len();
+
+        quicksort_helper(&mut slice[0..pivot_index]);
+        quicksort_helper(&mut slice[pivot_index + 1..len]);
+    }
+}
+
+fn partition<T>(slice: &mut [T]) -> Result<usize, &str>
+where
+    T: PartialEq + PartialOrd + Copy,
+{
+    let len = slice.len();
+    let pivot = slice[len - 1];
+    let mut i = 0;
+
+    for j in 0..len-1 {
+        if slice[j] <= pivot {
+            slice.swap(i, j);
+            i += 1;
+        }
+    }
+
+    slice.swap(i, len - 1);
+
+    Ok(i)
 }
