@@ -1,13 +1,58 @@
-#![feature(test)]
-#![feature(is_sorted)]
+//! This crate provides a trait `SearchSort` that defines methods for searching and sorting.
+//!
+//! The `SearchSort` trait provides a method `find_me` that finds the first occurrence of an element in a slice between a start and end index. It returns `Some(index)` if found, otherwise `None`.
+//!
+//! The crate also provides an implementation of the `SearchSort` trait for the [`Vec<T>`] type, which allows you to use the `find_me` method on vectors.
+//!
+//! Additionally, the crate provides a method `quicksort` that sorts a mutable slice in-place using the quicksort algorithm.
+//!
+//! The crate also includes tests and benchmarks for the `find_me` and `quicksort` methods.
+//!
+//! # Examples
+//!
+//! ```
+//! use searchsort::SearchSort;
+//!
+//! let arr = vec![4, 82, 4, 32, 3, 20, 3, 2, 2, 9, 8, 7, 5, 0];
+//! let find = 5;
+//!
+//! assert_eq!(arr.find_me(find, 0, arr.len()-1), Some(12));
+//!
+//! let mut arr = vec![3, 1, 4, 1, 5, 9, 2, 6, 5];
+//! arr.quicksort();
+//! assert_eq!(arr, [1, 1, 2, 3, 4, 5, 5, 6, 9]);
+//! ```
+// Enabling experimental features only when using nightly
+#![cfg_attr(feature = "nightly", feature(test))]
+#![cfg_attr(feature = "nightly", feature(is_sorted))]
+
+// Importing test crate for benchmarking only when using nightly
+#[cfg(feature = "nightly")]
 extern crate test;
 
-fn main() {}
+#[cfg(feature = "nightly")]
+#[cfg(test)]
+mod benchmarks {
+    use test::Bencher;
+    use crate::SearchSort;
+
+    #[bench]
+    fn bench_large_vector(b: &mut Bencher) {
+        let large_vector: Vec<usize> = (0..1_000_000).collect();
+        let find = 999_999;
+
+        b.iter(|| {
+            assert_eq!(
+                large_vector.find_me(find, 0, large_vector.len() - 1),
+                Some(999_999)
+            );
+        });
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::SearchSort;
-    use test::Bencher;
 
     #[test]
     fn test_find_5() {
@@ -92,48 +137,35 @@ mod tests {
     fn test_find_unsorted_array() {
         let arr = vec![9, 5, 2, 7, 3];
         let find = 5;
-        assert_eq!(arr.find_me(find, 0, arr.len() - 1), Some(1)); // Should fail because the array is not sorted.
+        assert_eq!(arr.find_me(find, 0, arr.len() - 1), Some(1));
     }
 
     #[test]
     fn test_find_out_of_bound_index() {
         let arr = vec![1, 2, 3];
         let find = 3;
-        assert_eq!(arr.find_me(find, 0, 5), None); // Should fail because end index is out of bounds.
+        assert_eq!(arr.find_me(find, 0, 5), None);
     }
 
     #[test]
     fn test_find_zero_length() {
         let arr = vec![1, 2, 3];
         let find = 3;
-        assert_eq!(arr.find_me(find, 2, 1), None); // Should fail because length is zero (end < start).
+        assert_eq!(arr.find_me(find, 2, 1), None);
     }
 
     #[test]
     fn test_find_middle_element() {
         let arr = vec![1, 2, 3];
         let find = 2;
-        assert_eq!(arr.find_me(find, 0, arr.len() - 1), Some(1)); // Should fail because your algorithm doesn't consider the middle element properly.
+        assert_eq!(arr.find_me(find, 0, arr.len() - 1), Some(1));
     }
 
     #[test]
     fn test_find_equal_elements() {
         let arr = vec![5, 5, 5, 5, 5];
         let find = 5;
-        assert_eq!(arr.find_me(find, 0, arr.len() - 1), Some(0)); // Should fail because all elements are equal.
-    }
-
-    #[bench]
-    fn bench_large_vector(b: &mut Bencher) {
-        let large_vector: Vec<usize> = (0..1_000_000).collect();
-        let find = 999_999;
-
-        b.iter(|| {
-            assert_eq!(
-                large_vector.find_me(find, 0, large_vector.len() - 1),
-                Some(999_999)
-            );
-        });
+        assert_eq!(arr.find_me(find, 0, arr.len() - 1), Some(0));
     }
 
     #[test]
@@ -185,9 +217,13 @@ mod tests {
     }
 }
 
-trait SearchSort<T> {
+// Trait defining methods for searching and sorting.
+pub trait SearchSort<T> {
+    /// Finds the first occurrence of `element` in the slice between `start` and `end` index.
+    /// Returns `Some(index)` if found, otherwise `None`.
     fn find_me(&self, element: T, start: usize, end: usize) -> Option<usize>;
-
+    
+    /// Sorts the vector using quicksort algorithm.
     fn quicksort(&mut self);
 }
 
@@ -245,6 +281,7 @@ where
     }
 }
 
+/// Helper functions for SearchSort impls
 fn quicksort_helper<T>(slice: &mut [T])
 where
     T: PartialEq + PartialOrd + Copy,
@@ -258,6 +295,7 @@ where
     }
 }
 
+/// Helper functions for SearchSort impls
 fn partition<T>(slice: &mut [T]) -> Result<usize, &str>
 where
     T: PartialEq + PartialOrd + Copy,

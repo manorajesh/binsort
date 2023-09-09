@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "binsort"
+name = "searchsort"
 version = "0.1.0"
